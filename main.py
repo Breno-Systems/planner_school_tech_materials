@@ -49,8 +49,6 @@ if st.button("Salvar"):
     if professor == "":
         st.warning('Erro: Campo "Professor" está vazio')
 
-    elif 
-
     elif conflito.any():
         st.warning('Erro: Carrinho já reservado nesse horário')
     
