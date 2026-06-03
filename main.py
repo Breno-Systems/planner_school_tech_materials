@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import time
-# IMPORTANTE: Importamos o 'text' do SQLAlchemy aqui
 from sqlalchemy import text
 
 # Configuração da página
@@ -35,7 +34,7 @@ if st.button("Salvar"):
     if professor.strip() == "":
         st.warning('Erro: Campo "Professor" está vazio')
     else:
-        # CONFLITO: Envelopado com text()
+        # Caso de conflito   
         query_conflito = text("""
             SELECT 1 FROM reservas 
             WHERE dia = :dia 
