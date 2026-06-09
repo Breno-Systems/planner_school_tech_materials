@@ -9,17 +9,13 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
     st.session_state.username = ""
     st.session_state.role = ""
-    
-
-    # Inicializa a conexão com o Neon
-conn = st.connection("postgresql", type="sql")
 
 if __name__ == "__main__":
     if not st.session_state.authenticated:
-        login(conn)
+        login()
     elif st.session_state.role == "Administrador":
-        app_admin(conn)
+        app_admin()
     elif st.session_state.role == "Professor":
-        app_professor(conn)
+        app_professor()
     elif st.session_state.role == "Aluno":
-        app_aluno(conn)
+        app_aluno()

@@ -4,7 +4,14 @@ from datetime import time
 from sqlalchemy import text
 from time import sleep
 
-def login(conn):
+def get_conn():
+    return st.connection("postgresql", type="sql")
+
+def login():
+
+    # Inicializa a conexão com o Neon
+    conn = get_conn()
+
     st.title("Login")
     login = st.text_input("Nome de Usuário")
     senha = st.text_input("Senha", type="password")
@@ -30,7 +37,10 @@ def login(conn):
                 st.error("Usuário ou senha inválidos.")
 
 
-def app_admin(conn):
+def app_admin():
+
+        # Inicializa a conexão com o Neon
+    conn = get_conn()
 
     st.title("Controle de Carrinhos - E.E.  Dom Lúcio Antunes")
 
@@ -130,11 +140,18 @@ def app_admin(conn):
     except Exception as e:
         st.error(f"Erro ao carregar os dados: {e}")
 
-def app_professor(conn):
+def app_professor():
+
+        # Inicializa a conexão com o Neon
+    conn = get_conn()
+
     st.title("Área do Professor - Em Desenvolvimento")
     st.info("Esta seção está em desenvolvimento. Por favor, aguarde futuras atualizações.")
 
-def app_aluno(conn):
+def app_aluno():
+
+        # Inicializa a conexão com o Neon
+    conn = get_conn()
 
     st.title("Área do Aluno - Em Desenvolvimento")
     st.info("Esta seção está em desenvolvimento. Por favor, aguarde futuras atualizações.")
