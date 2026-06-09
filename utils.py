@@ -2,21 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import time
 from sqlalchemy import text
-from sqlalchemy.exc import OperationalError
 from time import sleep
-
-
-def execute_query(conn, query, params=None, commit=False):
-    try:
-        with conn.session as session:
-            result = session.execute(query, params or {})
-            if commit:
-                session.commit()
-            return result
-    except OperationalError:
-        st.error("Erro de conexão com o banco. Recarregue a página.")
-        return None
-
 
 def login(conn):
     st.title("Login")
@@ -25,25 +11,23 @@ def login(conn):
 
     if st.button("Entrar"):
         query = text("SELECT 1 FROM users WHERE user_login = :login AND user_password = :senha LIMIT 1;")
-        result = execute_query(conn, query, {"login": login, "senha": senha})
-        row = result.fetchone() if result is not None else None
-
-        if row:
-            query = text("SELECT username, user_role FROM users WHERE user_login = :login LIMIT 1")
-            row2 = execute_query(conn, query, {"login": login})
-            row2 = row2.fetchone() if row2 is not None else None
-
-            if row2 and row2[1] in ("Administrador", "Professor", "Aluno"):
+        with conn.session as session:
+            result = session.execute(query, {"login": login, "senha": senha}).fetchone()
+            if result:
                 st.session_state.authenticated = True
-                st.session_state.role = row2[1]
-                st.session_state.username = row2[0]
+
+                query = text("SELECT username, user_role FROM users WHERE user_login = :login LIMIT 1")
+                row = session.execute(query, {"login": login}).fetchone()
+                
+                if row and row[1] in ("Administrador", "Professor", "Aluno"):
+                    st.session_state.role = row[1]
+                    st.session_state.username = row[0]
+
                 st.success("Login bem-sucedido!")
                 sleep(1.5)
                 st.rerun()
             else:
-                st.error("Role não suportado")
-        else:
-            st.error("Usuário ou senha inválidos.")
+                st.error("Usuário ou senha inválidos.")
 
 
 def app_admin(conn):
@@ -90,12 +74,11 @@ def app_admin(conn):
                 LIMIT 1;
             """)
             
-            conflito_result = execute_query(
-                conn,
-                query_conflito,
-                {"dia": dia, "carrinho": carrinho, "periodo": periodo, "aula": aula},
-            )
-            conflito_existe = conflito_result.fetchone() if conflito_result is not None else None
+            with conn.session as session:
+                conflito_existe = session.execute(
+                    query_conflito, 
+                    {"dia": dia, "carrinho": carrinho, "periodo": periodo, "aula": aula}
+                ).fetchone()
 
             if conflito_existe:
                 st.warning('Erro: Carrinho já reservado nesse horário!')
@@ -105,30 +88,31 @@ def app_admin(conn):
                     INSERT INTO reservas (dia, periodo, aula, carrinho, professor, turma)
                     VALUES (:dia, :periodo, :aula, :carrinho, :professor, :turma);
                 """)
-                insert_result = execute_query(
-                    conn,
-                    query_insert,
-                    {
-                        "dia": dia,
-                        "periodo": periodo,
-                        "aula": aula,
-                        "carrinho": carrinho,
-                        "professor": professor,
-                        "turma": turma,
-                    },
-                    commit=True,
-                )
-                if insert_result is not None:
-                    st.success("Reserva salva com sucesso!")
-                    st.rerun()
+                with conn.session as session:
+                    session.execute(
+                        query_insert,
+                        {
+                            "dia": dia,
+                            "periodo": periodo,
+                            "aula": aula,
+                            "carrinho": carrinho,
+                            "professor": professor,
+                            "turma": turma
+                        }
+                    )
+                    session.commit()
+                st.success("Reserva salva com sucesso!")
+                st.rerun()
 
     # Exibição dos Dados (SELECT)
     try:
         # Usamos conn.session para rodar a query com text() de forma segura
         query_select = text("SELECT dia, periodo, aula, carrinho, professor, turma FROM reservas;")
         
-        result = execute_query(conn, query_select)
-        df_reservas = pd.DataFrame(result.fetchall(), columns=result.keys()) if result is not None else pd.DataFrame()
+        with conn.session as session:
+            result = session.execute(query_select)
+            # Transforma o resultado do banco em um DataFrame do Pandas
+            df_reservas = pd.DataFrame(result.fetchall(), columns=result.keys())
         
         if not df_reservas.empty:
             # Ajusta os nomes das colunas para visualização
@@ -162,8 +146,10 @@ def app_aluno(conn):
         # Usamos conn.session para rodar a query com text() de forma segura
         query_select = text("SELECT dia, periodo, aula, carrinho, professor, turma FROM reservas;")
         
-        result = execute_query(conn, query_select)
-        df_reservas = pd.DataFrame(result.fetchall(), columns=result.keys()) if result is not None else pd.DataFrame()
+        with conn.session as session:
+            result = session.execute(query_select)
+            # Transforma o resultado do banco em um DataFrame do Pandas
+            df_reservas = pd.DataFrame(result.fetchall(), columns=result.keys())
         
         if not df_reservas.empty:
             # Ajusta os nomes das colunas para visualização
